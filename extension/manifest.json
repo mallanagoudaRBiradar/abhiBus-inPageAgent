@@ -1,0 +1,57 @@
+{
+  "manifest_version": 3,
+  "name": "AbhiBus In-Page Agent",
+  "version": "1.11.0",
+  "description": "An AI assistant that lives on abhibus.com and answers questions about your buses, bookings and AbhiCash using your own signed-in session.",
+  "minimum_chrome_version": "116",
+  "permissions": [
+    "activeTab",
+    "storage",
+    "cookies"
+  ],
+  "host_permissions": [
+    "*://*.abhibus.com/*",
+    "http://localhost:8787/*"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*.abhibus.com/*"
+      ],
+      "js": [
+        "src/config.js",
+        "src/apiRegistry.js",
+        "src/formatters.js",
+        "src/preRouter.js",
+        "src/shadowUi.js",
+        "src/agentClient.js",
+        "src/content.js"
+      ],
+      "run_at": "document_idle",
+      "all_frames": false
+    }
+  ],
+  "action": {
+    "default_title": "Toggle the AbhiBus assistant",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": false
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Shadow DOM chat panel — preview</title>
+    <style>
+      /* Hostile page CSS on purpose: if any of this leaks into the panel,
+         the Shadow DOM boundary is not doing its job. */
+      * { box-sizing: content-box !important; }
+      body {
+        margin: 0;
+        min-height: 200vh;
+        font-family: "Comic Sans MS", cursive;
+        background: repeating-linear-gradient(45deg, #fafbfd, #fafbfd 14px, #f1f3f7 14px, #f1f3f7 28px);
+        color: #333;
+      }
+      button { background: lime !important; border: 4px dotted magenta !important; }
+      div { line-height: 3; }
+      .page { max-width: 620px; margin: 0 auto; padding: 48px 24px; line-height: 1.6; }
+      h1 { font-size: 22px; }
+      code { background: #14181f; color: #fff; padding: 2px 6px; border-radius: 4px; }
+      .controls { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
+      .controls button {
+        background: #14181f !important;
+        border: none !important;
+        color: #fff;
+        padding: 8px 12px;
+        border-radius: 8px;
+        font: 13px system-ui;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <h1>Chat panel preview</h1>
+      <p>
+        This page loads <code>shadowUi.js</code> on its own with deliberately hostile
+        global CSS. Open it with <code>npx serve extension</code> (or any static
+        server) and visit <code>/dev/preview.html</code>.
+      </p>
+      <p>The launcher is bottom-right. Use the buttons below to exercise each state.</p>
+
+      <div class="controls">
+        <button data-demo="open">Open panel</button>
+        <button data-demo="stream">Simulate a streamed answer</button>
+        <button data-demo="tool">Simulate a tool call</button>
+        <button data-demo="auth">Show the logged-out state</button>
+        <button data-demo="error">Show an error</button>
+        <button data-demo="clear">Clear</button>
+      </div>
+    </div>
+
+    <script src="../src/shadowUi.js"></script>
+    <script>
+      const NS = window.__ABHI_AGENT__;
+
+      const ui = NS.createChatUI({
+        onSend(text) {
+          ui.addUserMessage(text);
+          demoStream(`You said "${text}". This reply is streamed locally so the shimmer, the route marker and the monospace data styling can all be checked without a backend.`);
+        },
+        onReset() { console.log('reset'); },
+        onLogin() { alert('Would open the AbhiBus login page.'); },
+        onRetry() { console.log('retry'); },
+      }).mount();
+
+      ui.setSubtitle('Preview mode');
+
+      function demoStream(text) {
+        ui.setBusy(true);
+        ui.setStatus('Thinking');
+        const bubble = ui.startAssistantMessage();
+        const words = text.split(' ');
+        let i = 0;
+        const timer = setInterval(() => {
+          bubble.append((i === 0 ? '' : ' ') + words[i]);
+          if (++i >= words.length) {
+            clearInterval(timer);
+            bubble.finish();
+            ui.setBusy(false);
+            ui.setStatus('');
+            ui.setFootnote('1.2 s');
+          }
+        }, 45);
+      }
+
+      const demos = {
+        open: () => ui.open(),
+        clear: () => { ui.clear(); ui.setFootnote(''); },
+        stream: () => {
+          ui.open();
+          ui.addUserMessage("What's my AbhiCash balance?");
+          demoStream('Your AbhiCash balance is **₹1,250**.\n\n₹250 of that is promotional credit with an expiry date.');
+        },
+        tool: () => {
+          ui.open();
+          ui.addUserMessage('Buses from Goa to Pune on 15 Aug');
+          ui.setBusy(true);
+          ui.setStatus('Reading AbhiBus');
+          const chip = ui.addToolChip('Bus search');
+          setTimeout(() => {
+            chip.done('Bus search · done');
+            demoStream('Found 12 buses.\n\n- **VRL Travels** — 21:45 → 05:30 · ₹899 · AC Sleeper\n- **Paulo Travels** — 22:15 → 06:10 · ₹1,050 · AC Sleeper\n- **Neeta Tours** — 23:00 → 07:00 · ₹749 · Non-AC Sleeper');
+          }, 1400);
+        },
+        auth: () => {
+          ui.open();
+          ui.addUserMessage('Show my bookings');
+          ui.showLoginRequired('This needs your AbhiBus account, and the session in this tab has expired.');
+        },
+        error: () => {
+          ui.open();
+          ui.showError('Cannot reach the assistant backend at http://localhost:8787.', { retry: true });
+        },
+      };
+
+      for (const btn of document.querySelectorAll('[data-demo]')) {
+        btn.addEventListener('click', () => demos[btn.dataset.demo]());
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>AbhiBus In-Page Agent — Settings</title>
+    <style>
+      :root {
+        --ink: #14181f;
+        --muted: #6b7484;
+        --line: #dde2ea;
+        --paper-2: #f1f3f7;
+        --red: #e5322d;
+        --teal: #0e8f7e;
+        --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        padding: 20px;
+        width: 380px;
+        font: 13.5px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        color: var(--ink);
+        background: #fff;
+      }
+      h1 { margin: 0 0 2px; font-size: 15px; font-weight: 620; }
+      .sub {
+        margin: 0 0 18px;
+        font-family: var(--mono);
+        font-size: 10.5px;
+        letter-spacing: .05em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      label { display: block; font-weight: 580; font-size: 12.5px; margin-bottom: 5px; }
+      .hint { color: var(--muted); font-size: 12px; margin: 5px 0 0; }
+      input[type="url"] {
+        width: 100%;
+        padding: 8px 10px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        font-family: var(--mono);
+        font-size: 12.5px;
+        color: var(--ink);
+      }
+      input[type="url"]:focus { outline: 2px solid var(--red); outline-offset: 1px; border-color: transparent; }
+      .field { margin-bottom: 16px; }
+      .row { display: flex; align-items: center; gap: 8px; }
+      .actions { display: flex; gap: 8px; align-items: center; margin-top: 4px; }
+      button {
+        font: inherit;
+        border: none;
+        border-radius: 8px;
+        padding: 8px 14px;
+        font-size: 12.5px;
+        font-weight: 580;
+        cursor: pointer;
+      }
+      .primary { background: var(--red); color: #fff; }
+      .ghost { background: transparent; border: 1px solid var(--line); color: var(--ink); }
+      #status { font-size: 12px; color: var(--teal); min-height: 16px; }
+      #status[data-tone="error"] { color: var(--red); }
+      hr { border: none; border-top: 1px solid var(--line); margin: 18px 0; }
+      .note {
+        background: var(--paper-2);
+        border-radius: 8px;
+        padding: 10px 12px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+      code { font-family: var(--mono); font-size: 11.5px; }
+    </style>
+  </head>
+  <body>
+    <h1>AbhiBus assistant</h1>
+    <p class="sub">Extension settings</p>
+
+    <div class="field">
+      <label for="backendUrl">Gateway URL</label>
+      <input id="backendUrl" type="url" placeholder="http://localhost:8787" spellcheck="false" />
+      <p class="hint">Where the Node backend is running. No trailing slash.</p>
+    </div>
+
+    <div class="field">
+      <div class="row">
+        <input id="debug" type="checkbox" />
+        <label for="debug" style="margin: 0">Log API calls and stream events to the console</label>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button id="save" class="primary" type="button">Save</button>
+      <button id="test" class="ghost" type="button">Test connection</button>
+      <span id="status" role="status"></span>
+    </div>
+
+    <hr />
+
+    <p class="note">
+      If you change the gateway to a non-localhost address, add it to
+      <code>host_permissions</code> in <code>manifest.json</code> and reload the
+      extension — Chrome blocks requests to hosts the manifest does not declare.
+    </p>
+
+    <script src="options.js"></script>
+  </body>
+</html>

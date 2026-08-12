@@ -1,0 +1,25 @@
+# --- secrets ---------------------------------------------------------------
+.env
+.env.*
+!.env.example
+
+# The reference cURL capture contains a live JWT, refresh token and cookie jar.
+# Never commit it.
+*.csv
+
+# --- dependencies & build ---------------------------------------------------
+node_modules/
+dist/
+*.tsbuildinfo
+
+# --- packaging ---------------------------------------------------------------
+*.zip
+!abhibus-inpage-agent.zip
+
+# --- editor / OS -------------------------------------------------------------
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.log
+npm-debug.log*
