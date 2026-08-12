@@ -812,6 +812,42 @@ button:focus-visible, textarea:focus-visible, a:focus-visible {
 .send:disabled { opacity: .4; cursor: not-allowed; }
 .send svg { width: 16px; height: 16px; fill: #fff; }
 
+/* -------------------------------------------------------------- voice */
+
+.mic {
+  width: 36px; height: 36px;
+  flex: none;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background: var(--paper);
+  color: var(--muted);
+  display: grid; place-items: center;
+  transition: background .15s ease, color .15s ease, border-color .15s ease;
+}
+.mic:hover { color: var(--red); border-color: rgba(229,50,45,.45); background: #FFF6F5; }
+.mic:disabled { opacity: .4; cursor: not-allowed; }
+.mic svg { width: 17px; height: 17px; fill: currentColor; }
+.mic[hidden] { display: none; }
+
+/* While recording the mic becomes a tick on a pulsing red button. */
+.mic[data-recording="true"] {
+  background: var(--red);
+  border-color: var(--red);
+  color: #fff;
+  animation: mic-pulse 1.6s ease-out infinite;
+}
+.mic[data-recording="true"]:hover { background: var(--red-dark); }
+@keyframes mic-pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(229,50,45,.45); }
+  70%  { box-shadow: 0 0 0 9px rgba(229,50,45,0); }
+  100% { box-shadow: 0 0 0 0 rgba(229,50,45,0); }
+}
+
+/* Listening: the textarea border breathes red so the state is unmissable. */
+.compose textarea[data-listening="true"] {
+  border-color: rgba(229,50,45,.55);
+}
+
 .footnote {
   flex: none;
   padding: 0 14px 9px;
@@ -875,6 +911,12 @@ button:focus-visible, textarea:focus-visible, a:focus-visible {
     '</svg>';
   const ICON_SEND =
     '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.4 20.4 21 12 3.4 3.6 3.39 10.1 15.5 12 3.39 13.9z"/></svg>';
+  const ICON_MIC =
+    '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 14.5a3.3 3.3 0 0 0 3.3-3.3V5.3a3.3 3.3 0 0 0-6.6 0v5.9A3.3 3.3 0 0 0 12 14.5Zm5.6-3.3a5.6 5.6 0 0 1-11.2 0H4.5a7.5 7.5 0 0 0 6.5 7.43V21h2v-2.37a7.5 7.5 0 0 0 6.5-7.43h-1.9Z"/></svg>';
+  const ICON_TICK =
+    '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.8 12.6 10 17.6 19.2 7.2" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  const ICON_VOICE_X =
+    '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>';
 
   const SUGGESTIONS = [
     "What's my AbhiCash balance?",
@@ -1046,6 +1088,10 @@ button:focus-visible, textarea:focus-visible, a:focus-visible {
       <div class="compose">
         <textarea data-input rows="1" placeholder="Ask about buses, bookings or AbhiCash"
                   aria-label="Message the AbhiBus assistant"></textarea>
+        <button class="mic" type="button" data-voice-cancel hidden title="Discard voice input"
+                aria-label="Cancel voice input">${ICON_VOICE_X}</button>
+        <button class="mic" type="button" data-mic title="Speak your question"
+                aria-label="Start voice input">${ICON_MIC}</button>
         <button class="send" type="button" data-send aria-label="Send message">${ICON_SEND}</button>
       </div>
     `;
@@ -1108,6 +1154,7 @@ button:focus-visible, textarea:focus-visible, a:focus-visible {
     inputEl.addEventListener('input', autoGrow);
 
     function submit() {
+      if (isRecording) stopVoice(); // Enter mid-dictation: accept, then send
       const text = inputEl.value.trim();
       if (!text || isBusy) return;
       inputEl.value = '';
@@ -1122,6 +1169,125 @@ button:focus-visible, textarea:focus-visible, a:focus-visible {
         submit();
       }
     });
+
+    /* ---- voice input (Web Speech API — free, built into Chrome) ------ */
+    const micEl = $('[data-mic]');
+    const voiceCancelEl = $('[data-voice-cancel]');
+    const idlePlaceholder = inputEl.placeholder;
+    const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    let recognition = null;
+    let isRecording = false;
+    let voiceBase = ''; // text already in the box when recording started
+    let voiceFinal = ''; // finalised transcript accumulated so far
+
+    if (!SpeechRec) {
+      // No recognition engine in this browser — the feature simply hides.
+      micEl.hidden = true;
+    } else {
+      micEl.addEventListener('click', () => {
+        isRecording ? acceptVoice() : startVoice();
+      });
+      voiceCancelEl.addEventListener('click', cancelVoice);
+    }
+
+    function setVoiceUi(on) {
+      isRecording = on;
+      micEl.dataset.recording = String(on);
+      micEl.innerHTML = on ? ICON_TICK : ICON_MIC;
+      micEl.title = on ? 'Done — use this text' : 'Speak your question';
+      micEl.setAttribute(
+        'aria-label',
+        on ? 'Finish recording and use the text' : 'Start voice input',
+      );
+      voiceCancelEl.hidden = !on;
+      inputEl.dataset.listening = String(on);
+      inputEl.placeholder = on ? 'Listening…' : idlePlaceholder;
+    }
+
+    function renderTranscript(interim) {
+      const spoken = `${voiceFinal}${interim}`.replace(/\s+/g, ' ').trim();
+      inputEl.value = voiceBase && spoken ? `${voiceBase} ${spoken}` : voiceBase || spoken;
+      autoGrow();
+    }
+
+    function startVoice() {
+      if (isBusy || isRecording) return;
+      voiceBase = inputEl.value.trim();
+      voiceFinal = '';
+
+      recognition = new SpeechRec();
+      recognition.lang = 'en-IN';
+      recognition.continuous = true;
+      recognition.interimResults = true;
+
+      recognition.onresult = (e) => {
+        let interim = '';
+        for (let i = e.resultIndex; i < e.results.length; i++) {
+          const transcript = e.results[i][0].transcript;
+          if (e.results[i].isFinal) voiceFinal += `${transcript} `;
+          else interim += transcript;
+        }
+        renderTranscript(interim);
+      };
+      recognition.onerror = (e) => {
+        if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
+          stopVoice();
+          api.setStatus('Mic blocked — allow microphone access for this site');
+        }
+        // 'no-speech' / 'aborted' are routine; onend decides what happens next.
+      };
+      recognition.onend = () => {
+        // Chrome ends recognition after a pause; keep listening until ✓ / ✕.
+        if (isRecording) {
+          try {
+            recognition.start();
+          } catch {
+            stopVoice();
+          }
+        }
+      };
+
+      try {
+        recognition.start();
+        setVoiceUi(true);
+        api.setStatus('Listening — tap ✓ when done');
+      } catch {
+        stopVoice();
+        api.setStatus('Voice input is unavailable right now');
+      }
+    }
+
+    function stopVoice() {
+      isRecording = false; // before .stop(), so onend does not restart
+      if (recognition) {
+        recognition.onresult = null;
+        recognition.onerror = null;
+        recognition.onend = null;
+        try {
+          recognition.stop();
+        } catch {
+          /* already stopped */
+        }
+        recognition = null;
+      }
+      setVoiceUi(false);
+      api.setStatus('');
+    }
+
+    /** The ✓: keep the transcript in the input, ready to edit or send. */
+    function acceptVoice() {
+      stopVoice();
+      inputEl.focus();
+    }
+
+    /** The ✕: discard the transcript, restore what was typed before. */
+    function cancelVoice() {
+      stopVoice();
+      inputEl.value = voiceBase;
+      autoGrow();
+      inputEl.focus();
+    }
 
     /* ---- open / close ------------------------------------------------ */
     function open() {
@@ -1154,6 +1320,10 @@ button:focus-visible, textarea:focus-visible, a:focus-visible {
     root.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && isOpen) {
         e.stopPropagation();
+        if (isRecording) {
+          cancelVoice(); // first Escape stops the mic, second closes the panel
+          return;
+        }
         close();
       }
     });
@@ -1190,6 +1360,8 @@ button:focus-visible, textarea:focus-visible, a:focus-visible {
         panel.dataset.busy = String(busy);
         sendEl.disabled = busy;
         inputEl.disabled = busy;
+        micEl.disabled = busy;
+        if (busy && isRecording) stopVoice(); // keep any transcript, stop the mic
       },
 
       setStatus(text) {

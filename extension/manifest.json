@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "AbhiBus In-Page Agent",
-  "version": "1.11.0",
+  "version": "1.12.0",
   "description": "An AI assistant that lives on abhibus.com and answers questions about your buses, bookings and AbhiCash using your own signed-in session.",
   "minimum_chrome_version": "116",
   "permissions": [
