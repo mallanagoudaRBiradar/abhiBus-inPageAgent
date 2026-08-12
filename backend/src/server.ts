@@ -65,6 +65,10 @@ const corsOptions: CorsOptions = {
     if (!origin) return callback(null, true);
     if (CONFIG.allowAllOrigins) return callback(null, true);
     if (CONFIG.allowedOrigins.includes(origin)) return callback(null, true);
+    // The content script runs on every AbhiBus subdomain (www / web / m…) and
+    // its fetches carry that page's origin — allow the whole family, or the
+    // assistant silently dies anywhere except www.
+    if (/^https:\/\/([a-z0-9-]+\.)*abhibus\.com$/i.test(origin)) return callback(null, true);
     // Any unpacked build of this extension, whatever id Chrome assigned it.
     if (origin.startsWith('chrome-extension://')) return callback(null, true);
     return callback(new Error(`Origin not allowed: ${origin}`));
@@ -127,6 +131,11 @@ app.get('/api/tools', (_req: Request, res: Response) => {
       required: t.parameters.required ?? [],
     })),
   });
+});
+
+/** UI feature flags the extension reads at boot (SHOW_BUS_LIST_UI in .env). */
+app.get('/api/ui-config', (_req: Request, res: Response) => {
+  res.json({ ok: true, showBusListUi: CONFIG.showBusListUi });
 });
 
 /** Debug: confirm what a city name resolves to, e.g. /api/stations/resolve?name=pune */

@@ -93,6 +93,18 @@ export const CONFIG = {
   ]),
   /** Set ALLOW_ALL_ORIGINS=true only for local development. */
   allowAllOrigins: str('ALLOW_ALL_ORIGINS', 'false') === 'true',
+
+  /* --- UI feature flags -------------------------------------------------
+   * SHOW_BUS_LIST_UI=no hides the rich bus-results card inside the chat
+   * panel: searches still run, the page still navigates to the live results
+   * with the user's filters auto-applied, but the chat shows a short playful
+   * note instead of the list and tucks itself away while the page does the
+   * talking (reopening it keeps the full history). Anything except
+   * no/false/0/off counts as yes.
+   * -------------------------------------------------------------------- */
+  showBusListUi: !['no', 'false', '0', 'off'].includes(
+    str('SHOW_BUS_LIST_UI', 'yes').toLowerCase(),
+  ),
 } as const;
 
 export function describeConfig(): string {
