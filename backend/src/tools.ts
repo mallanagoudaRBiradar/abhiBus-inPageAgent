@@ -100,10 +100,19 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
         filter: {
           type: 'string',
           description:
-            'Optional bus-type constraint taken from the user\'s words, e.g. "ac", ' +
-            '"non ac", "sleeper", "ac sleeper", "seater", "volvo". When set, the ' +
+            'Optional bus-type and/or departure-time constraint taken from the ' +
+            'user\'s words, e.g. "ac", "non ac", "sleeper", "ac sleeper", "seater", ' +
+            '"volvo", "evening", "morning ac", "late night sleeper". When set, the ' +
             'results (and the card the user sees) contain only matching buses — ' +
-            'ALWAYS set it when the user names a bus type.',
+            'ALWAYS set it when the user names a bus type or a time of day.',
+        },
+        operator: {
+          type: 'string',
+          description:
+            'Optional operator/travel-partner restriction taken from the user\'s ' +
+            'words, e.g. "vrl", "orange", "ksrtc" — a partial name is fine, matching ' +
+            'is fuzzy. ALWAYS set it when the user asks for buses of a specific ' +
+            'operator ("VRL buses only", "search for vrl bus").',
         },
         isReturnJourney: {
           type: 'string',
