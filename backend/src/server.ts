@@ -133,9 +133,9 @@ app.get('/api/tools', (_req: Request, res: Response) => {
   });
 });
 
-/** UI feature flags the extension reads at boot (SHOW_BUS_LIST_UI in .env). */
+/** UI feature flags the extension reads at boot (see .env). */
 app.get('/api/ui-config', (_req: Request, res: Response) => {
-  res.json({ ok: true, showBusListUi: CONFIG.showBusListUi });
+  res.json({ ok: true, showBusListUi: CONFIG.showBusListUi, chatFlow: CONFIG.chatFlow });
 });
 
 /** Debug: confirm what a city name resolves to, e.g. /api/stations/resolve?name=pune */

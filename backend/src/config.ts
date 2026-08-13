@@ -105,6 +105,13 @@ export const CONFIG = {
   showBusListUi: !['no', 'false', '0', 'off'].includes(
     str('SHOW_BUS_LIST_UI', 'yes').toLowerCase(),
   ),
+
+  /**
+   * CHAT_FLOW=row lays the minimal chat out horizontally — new messages
+   * push to the RIGHT along the bottom of the screen instead of stacking
+   * upward. Anything except "row" means the classic small column.
+   */
+  chatFlow: str('CHAT_FLOW', 'column').toLowerCase() === 'row' ? 'row' : 'column',
 } as const;
 
 export function describeConfig(): string {
