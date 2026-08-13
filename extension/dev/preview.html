@@ -48,6 +48,7 @@
         <button data-demo="tool">Simulate a tool call</button>
         <button data-demo="auth">Show the logged-out state</button>
         <button data-demo="error">Show an error</button>
+        <button data-demo="overlay">AI search overlay</button>
         <button data-demo="clear">Clear</button>
       </div>
     </div>
@@ -113,6 +114,24 @@
         error: () => {
           ui.open();
           ui.showError('Cannot reach the assistant backend at http://localhost:8787.', { retry: true });
+        },
+        overlay: () => {
+          // The full page-only-flow journey, compressed: search starts,
+          // buses found, page "turns", filters land, sign-off.
+          ui.showSearchOverlay({
+            route: 'Pune → Goa',
+            date: '2026-08-13',
+            steps: [
+              'Understanding your request',
+              'Scanning AbhiBus for your buses',
+              'Opening live results',
+              'Applying your preferences',
+            ],
+            doneThrough: 0,
+          });
+          setTimeout(() => ui.advanceSearchOverlay(1), 1300);
+          setTimeout(() => ui.advanceSearchOverlay(2, 'Applying A/C · price low → high'), 2600);
+          setTimeout(() => ui.finishSearchOverlay('Applied A/C · price low → high'), 4200);
         },
       };
 

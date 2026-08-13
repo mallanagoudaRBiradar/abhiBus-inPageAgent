@@ -110,6 +110,8 @@ extension/
     ├── apiRegistry.js     PHASE 1 — the 8 endpoints + resolveCityIds
     ├── formatters.js      Local answer rendering for the fast path
     ├── preRouter.js       PHASE 4 — regex intent routing
+    ├── pageBridge.js      PHASE 6 — chat persistence across in-tab navigation
+    │                      + auto-applying the user's sort/filters on the SRP
     ├── shadowUi.js        PHASE 2 — the entire UI, inside attachShadow()
     ├── agentClient.js     PHASE 4 — SSE reader + tool-result callback
     └── content.js         Entrypoint and routing decision

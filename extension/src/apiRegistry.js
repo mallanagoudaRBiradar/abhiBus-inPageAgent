@@ -463,8 +463,14 @@
     const seg = (name) => encodeURIComponent(String(name ?? '').trim().replace(/\s+/g, '-'));
     const [y, m, d] = String(args.jdate ?? '').split('-');
     if (!y || !m || !d) return undefined;
+    // Stay on the subdomain the user is already on (www / web / m): the chat
+    // snapshot lives in per-origin sessionStorage, so a cross-subdomain jump
+    // would silently lose the conversation.
+    const origin = /(^|\.)abhibus\.com$/i.test(window.location.hostname)
+      ? window.location.origin
+      : CONFIG.apiOrigin;
     return (
-      `${CONFIG.apiOrigin}/bus_search/${seg(args.source)}/${Number(args.sourceId)}` +
+      `${origin}/bus_search/${seg(args.source)}/${Number(args.sourceId)}` +
       `/${seg(args.destination)}/${Number(args.destinationId)}/${d}-${m}-${y}/O`
     );
   }
@@ -491,12 +497,74 @@
     return true;
   }
 
+  /** Departure hour (0-23) from whatever shape the API sent, else null. */
+  function departureHour(svc) {
+    const s = String(svc.departure ?? '');
+    const ampm = s.match(/(\d{1,2})(?::\d{2})?\s*([ap])\.?\s*\.?m/i);
+    if (ampm) {
+      let hours = Number(ampm[1]) % 12;
+      if (/p/i.test(ampm[2])) hours += 12;
+      return hours;
+    }
+    const hm = s.match(/\b(\d{1,2}):\d{2}/);
+    if (hm) return Number(hm[1]);
+    const n = Number(s);
+    if (Number.isFinite(n) && n > 1e11) return new Date(n).getHours();
+    return null;
+  }
+
+  /**
+   * Departure-time constraint for searchBuses' `filter` arg ("evening",
+   * "morning ac sleeper", "late night"). Mirrors the windows the results
+   * page offers: Before 10 AM / 10 AM-5 PM / 5 PM-11 PM / After 11 PM.
+   * A service whose departure cannot be parsed is kept, not dropped.
+   */
+  function timeWindowMatches(svc, filterRaw) {
+    const f = String(filterRaw).toLowerCase();
+    const windows = [];
+    const lateNight = /late\s*night|after\s*11|midnight/.test(f);
+    if (lateNight) windows.push([23, 24], [0, 4]);
+    if (/early\s*morning|morning|before\s*10/.test(f)) windows.push([4, 10]);
+    if (/afternoon|mid\s*-?\s*day|noon/.test(f)) windows.push([10, 17]);
+    if (/evening|tonight/.test(f) || (!lateNight && /\bnight\b/.test(f))) windows.push([17, 23]);
+    if (!windows.length) return true; // no time words in the filter
+
+    const hour = departureHour(svc);
+    if (hour === null) return true;
+    return windows.some(([from, to]) => hour >= from && hour < to);
+  }
+
   /* ---- 3. POST /buslist/v3/services --------------------------------- */
   async function searchBuses(args = {}) {
     const required = ['source', 'sourceId', 'destination', 'destinationId', 'jdate'];
     const missing = required.filter((key) => args[key] === undefined || args[key] === '');
     if (missing.length) {
       return { error: 'MISSING_ARGUMENTS', missing, hint: 'Call resolveCityIds first.' };
+    }
+
+    // SHOW_BUS_LIST_UI=no is single-API-call mode: the extension does not
+    // fetch the bus list AT ALL. The results page — which the interface is
+    // about to open in this tab with the user's sort/filters auto-applied —
+    // makes the one and only buslist call. The stub tells the model exactly
+    // what it may and may not say without live data in hand.
+    if (NS.CONFIG.showBusListUi === false) {
+      return {
+        route: `${args.source} → ${args.destination}`,
+        date: String(args.jdate),
+        ...(args.filter ? { filter: String(args.filter) } : {}),
+        sourceId: Number(args.sourceId),
+        destinationId: Number(args.destinationId),
+        searchUrl: buildBusSearchUrl(args),
+        ...(args.operator ? { operatorFilter: String(args.operator) } : {}),
+        fetchSkipped: true,
+        note:
+          'Bus-list display is disabled by configuration, so this tool did NOT ' +
+          'fetch live fares. The live results page is opening on the user\'s ' +
+          'screen right now with their requested sort/filters applied. Answer in ' +
+          'ONE short sentence that the results are loading on the page (mention ' +
+          'the applied sort/filter if any). Do NOT invent fares, times, operators ' +
+          'or bus counts — you have none.',
+      };
     }
 
     const data = await request('/buslist/v3/services', {
@@ -571,11 +639,18 @@
 
     const projected = services.map(projectService);
 
-    // Optional bus-type constraint from the model ("ac sleeper", "non ac"...)
-    // so the card shows what the user actually asked for.
-    const filtered = args.filter
-      ? projected.filter((svc) => busTypeMatches(svc, args.filter))
-      : projected;
+    // Optional constraints from the model ("evening ac sleeper", "non ac",
+    // "vrl only"...) so the card shows what the user actually asked for.
+    // Operator matching is a fuzzy substring — "vrl" hits "VRL Travels".
+    const wantedOperator = String(args.operator ?? '').trim().toLowerCase();
+    const operatorMatches = (svc) =>
+      !wantedOperator || String(svc.operator ?? '').toLowerCase().includes(wantedOperator);
+    const filtered = projected.filter(
+      (svc) =>
+        operatorMatches(svc) &&
+        (!args.filter ||
+          (busTypeMatches(svc, args.filter) && timeWindowMatches(svc, args.filter))),
+    );
 
     // Cheapest FIRST, before slicing — with 296 services, taking the API's
     // first 15 could drop the genuinely cheapest buses entirely.
@@ -587,6 +662,7 @@
       route: `${args.source} → ${args.destination}`,
       date: args.jdate,
       ...(args.filter ? { filter: String(args.filter) } : {}),
+      ...(args.operator ? { operatorFilter: String(args.operator) } : {}),
       sourceId: Number(args.sourceId),
       destinationId: Number(args.destinationId),
       searchUrl: buildBusSearchUrl(args),

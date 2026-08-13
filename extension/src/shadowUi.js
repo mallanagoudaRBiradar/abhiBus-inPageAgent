@@ -855,6 +855,314 @@ button:focus-visible, textarea:focus-visible, a:focus-visible {
   color: var(--muted);
 }
 
+/* ------------------------------------------- AI search overlay
+   The page-only flow's loader, in pure glass: the real page stays visible
+   and simply frosts over; one floating translucent card carries the route,
+   a travelling bus glyph, stop-by-stop progress and a gradient-shimmer
+   status line. Faint blurred coaches drift through the glass. */
+
+.ovl {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483000;
+  pointer-events: none; /* the page behind stays fully visible AND usable */
+  animation: ovl-in .3s ease-out;
+}
+.ovl.ovl-out { animation: ovl-fade .9s ease forwards; }
+@keyframes ovl-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes ovl-fade { 60% { opacity: 1; } to { opacity: 0; } }
+
+.ovl-sheet {
+  position: absolute;
+  left: 50%;
+  bottom: 22px;
+  width: min(1060px, calc(100vw - 56px));
+  transform: translateX(-50%);
+  transform-origin: 50% 100%;   /* grows out of the logo at bottom-centre */
+  pointer-events: auto;
+  border-radius: 24px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, .18), rgba(255, 255, 255, .34));
+  backdrop-filter: blur(28px) saturate(1.3);
+  -webkit-backdrop-filter: blur(28px) saturate(1.3);
+  border: 1px solid rgba(255, 255, 255, .4);
+  box-shadow: 0 20px 60px rgba(31, 41, 55, .18);
+  padding: 0;
+  overflow: hidden;
+  /* the card holds back while the logo makes its entrance, then spreads
+     out of it — slow on purpose, the arrival is part of the show */
+  animation: ovl-sheet-in 1.9s cubic-bezier(.22, 1, .36, 1);
+}
+@keyframes ovl-sheet-in {
+  0%   { transform: translateX(-50%) scale(.05); opacity: 0; border-radius: 60px; }
+  38%  { transform: translateX(-50%) scale(.05); opacity: 0; border-radius: 60px; }
+  56%  { opacity: 1; }
+  84%  { transform: translateX(-50%) scale(1.004); opacity: 1; border-radius: 24px; }
+  100% { transform: translateX(-50%) scale(1); opacity: 1; border-radius: 24px; }
+}
+.ovl.ovl-out .ovl-sheet {
+  animation: ovl-sheet-out 1.5s cubic-bezier(.55, 0, .52, 1) forwards;
+}
+@keyframes ovl-sheet-out {
+  0%   { transform: translateX(-50%) scale(1); opacity: 1; border-radius: 24px; }
+  12%  { transform: translateX(-50%) scale(1.004); opacity: 1; border-radius: 24px; }
+  55%  { transform: translateX(-50%) scale(.05); opacity: 0; border-radius: 60px; }
+  100% { transform: translateX(-50%) scale(.05); opacity: 0; border-radius: 60px; }
+}
+
+/* the round AbhiBus logo — the loader is born from it and returns to it.
+   It rises FROM BELOW the bottom edge, pops, hands over to the card;
+   on the way out it reappears and sinks back down. */
+.ovl-logo {
+  position: absolute;
+  left: 50%;
+  bottom: 30px;
+  width: 64px;
+  height: 64px;
+  margin-left: -32px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #F0524C, var(--red-dark));
+  box-shadow: 0 10px 32px rgba(229, 50, 45, .45);
+  display: grid;
+  place-items: center;
+  z-index: 6;
+  pointer-events: none;
+  opacity: 0;
+  animation: ovl-logo-in 1.9s ease forwards;
+}
+.ovl-logo svg { width: 34px; height: 34px; fill: #fff; }
+@keyframes ovl-logo-in {
+  0%   { transform: translateY(150px) scale(.6); opacity: 0; }
+  22%  { transform: translateY(0) scale(1); opacity: 1; }
+  33%  { transform: translateY(0) scale(1.14); opacity: 1; }
+  44%  { transform: translateY(0) scale(1); opacity: 1; }
+  62%  { transform: translateY(0) scale(1.5); opacity: 0; }
+  100% { transform: translateY(0) scale(1.5); opacity: 0; }
+}
+.ovl.ovl-out .ovl-logo { animation: ovl-logo-out 1.5s ease forwards; }
+@keyframes ovl-logo-out {
+  0%   { transform: translateY(0) scale(1.4); opacity: 0; }
+  42%  { transform: translateY(0) scale(1); opacity: 1; }
+  56%  { transform: translateY(0) scale(1.1); opacity: 1; }
+  70%  { transform: translateY(0) scale(1); opacity: 1; }
+  100% { transform: translateY(160px) scale(.65); opacity: 0; }
+}
+
+/* resume mode: the loader was ALREADY on screen before the page turned —
+   no second grand entrance, everything is simply there, mid-journey */
+.ovl.resume .ovl-sheet { animation: none; }
+.ovl.resume .ovl-logo { animation: none; }
+
+/* the text block under the scene */
+.ovl-info { padding: 16px 38px 20px; }
+
+@media (max-width: 640px) {
+  .ovl-sheet { width: calc(100vw - 20px); bottom: 12px; border-radius: 20px; }
+  .ovl-scene { height: 104px; border-radius: 19px 19px 0 0; }
+  .ovl-info { padding: 12px 16px 15px; }
+  .ovl-city { font-size: 12px; letter-spacing: .08em; }
+  .ovl-route-row { gap: 8px; margin-bottom: 12px; }
+  .ovl-route-dash { min-width: 18px; }
+  .ovl-date { font-size: 9px; padding: 2px 7px; letter-spacing: .04em; }
+  .ovl-stage { font-size: 12.5px; }
+  .ovl-scene .mark { font-size: 11.5px; padding: 4px 11px; }
+  .ovl-lane.b1 { width: 48px; }
+  .ovl-lane.b2 { width: 34px; }
+  .ovl-lane.b3 { width: 24px; }
+}
+
+.ovl-body { position: relative; }
+
+/* ---- the scene banner: night ridge, gold sun, three-lane convoy ------ */
+
+.ovl-scene {
+  position: relative;
+  height: 150px;
+  border-radius: 23px 23px 0 0; /* flush with the glass card — no frame */
+  overflow: hidden;
+  /* translucent night glass — the page glows through the scene too */
+  background: linear-gradient(180deg, rgba(20, 25, 38, .72) 0%, rgba(30, 37, 53, .78) 100%);
+}
+.ovl-scene .mtn {
+  position: absolute;
+  left: 0; right: 0; bottom: 24px;
+  width: 100%;
+  height: 78%;
+}
+.ovl-scene .sun {
+  position: absolute;
+  top: 18px;
+  left: 21%;
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  background: #D9A036;
+  box-shadow: 0 0 22px 4px rgba(217, 160, 54, .35);
+  animation: ovl-sun-glow 4s ease-in-out infinite alternate;
+}
+@keyframes ovl-sun-glow {
+  from { box-shadow: 0 0 18px 3px rgba(217,160,54,.3); }
+  to   { box-shadow: 0 0 28px 7px rgba(217,160,54,.45); }
+}
+.ovl-scene .horizon {
+  position: absolute;
+  left: 0; right: 0; bottom: 26px;
+  height: 1.5px;
+  background: rgba(255, 255, 255, .28);
+}
+.ovl-scene .mark {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  padding: 5px 14px;
+  border-radius: 99px;
+  background: rgba(229, 50, 45, .92);
+  font-family: var(--ui);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: -.01em;
+  color: #fff;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, .3);
+}
+
+/* the convoy — three lanes of depth, all rolling left to right */
+.ovl-lane {
+  position: absolute;
+  color: #F26560;
+  animation: ovl-lane linear infinite;
+}
+.ovl-lane svg { width: 100%; display: block; }
+.ovl-lane.b1 { width: 66px; bottom: 12px; animation-duration: 3.8s; opacity: 1; color: var(--red); }
+.ovl-lane.b2 { width: 44px; bottom: 20px; animation-duration: 5.6s; animation-delay: -2.4s; opacity: .6; }
+.ovl-lane.b3 { width: 30px; bottom: 25px; animation-duration: 7.6s; animation-delay: -5s; opacity: .35; }
+@keyframes ovl-lane { from { left: -70px; } to { left: 104%; } }
+
+/* route line: two city names, a dashed road, one small bus in transit */
+.ovl-route-row {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 18px;
+}
+.ovl-city {
+  font-family: var(--mono);
+  font-size: 14.5px;
+  font-weight: 700;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: #232B38;
+  text-shadow: 0 1px 3px rgba(255, 255, 255, .55);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ovl-route-dash {
+  flex: 1;
+  min-width: 60px;
+  position: relative;
+  height: 2px;
+  background: repeating-linear-gradient(90deg,
+    rgba(107, 116, 132, .35) 0 7px, transparent 7px 15px);
+}
+.ovl-route-dash .bus {
+  position: absolute;
+  top: -12px;
+  width: 22px; height: 22px;
+  animation: ovl-transit 3s linear infinite;
+}
+.ovl-route-dash .bus svg { width: 22px; height: 22px; fill: var(--red); }
+@keyframes ovl-transit {
+  from { left: -6%; opacity: 0; }
+  12%  { opacity: 1; }
+  88%  { opacity: 1; }
+  to   { left: 100%; opacity: 0; }
+}
+.ovl-date {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: .08em;
+  color: var(--muted);
+  border: 1px solid rgba(107, 116, 132, .25);
+  border-radius: 99px;
+  padding: 3px 10px;
+  white-space: nowrap;
+}
+
+/* progress as a route: stops light up as the journey advances */
+.ovl-stops { position: relative; height: 12px; margin: 0 4px 12px; }
+.ovl-stops .track,
+.ovl-stops .fill {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  height: 2px;
+  transform: translateY(-50%);
+  border-radius: 99px;
+}
+.ovl-stops .track { right: 0; background: rgba(107, 116, 132, .18); }
+.ovl-stops .fill {
+  width: 0;
+  background: linear-gradient(90deg, var(--red), var(--amber));
+  transition: width .7s cubic-bezier(.4, 0, .2, 1);
+}
+.ovl-stop {
+  position: absolute;
+  top: 50%;
+  width: 10px; height: 10px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .9);
+  border: 2px solid rgba(107, 116, 132, .3);
+  transition: border-color .3s ease, background .3s ease;
+}
+.ovl-stop[data-state="done"] { border-color: var(--red); background: var(--red); }
+.ovl-stop[data-state="active"] {
+  border-color: var(--amber);
+  animation: ovl-stop-pulse 1.1s ease-in-out infinite;
+}
+@keyframes ovl-stop-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(245, 165, 36, .45); }
+  50%      { box-shadow: 0 0 0 6px rgba(245, 165, 36, 0); }
+}
+
+/* the status line — an animated gradient shimmer, the AI signature */
+.ovl-stage {
+  text-align: center;
+  font-size: 13.5px;
+  font-weight: 600;
+  letter-spacing: .01em;
+  background: linear-gradient(90deg,
+    #79839680 12%, #6B7484 32%, var(--red) 46%, var(--amber) 54%, #6B7484 68%, #79839680 88%);
+  background-size: 220% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  animation: ovl-shimmer-text 2.4s linear infinite;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+@keyframes ovl-shimmer-text {
+  from { background-position: 130% 0; }
+  to   { background-position: -70% 0; }
+}
+.ovl-stage[data-live="true"]::after { content: "…"; }
+.ovl-stage.done {
+  background: none;
+  -webkit-text-fill-color: var(--teal);
+  color: var(--teal);
+  animation: none;
+}
+
+.ovl-brand {
+  margin-top: 13px;
+  text-align: center;
+  font-family: var(--mono);
+  font-size: 8.5px;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: rgba(107, 116, 132, .65);
+}
+
 /* ------------------------------------------------------- responsive */
 
 @media (max-width: 480px) {
@@ -917,6 +1225,32 @@ button:focus-visible, textarea:focus-visible, a:focus-visible {
     '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.8 12.6 10 17.6 19.2 7.2" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   const ICON_VOICE_X =
     '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>';
+
+  /* ---- AI search overlay art (inline: no fetches, no CSP risk) -------- */
+
+  /** Line-art coach, side view — colour comes from CSS `color`. */
+  const OVL_BUS_LINE =
+    '<svg viewBox="0 0 48 30" fill="none" stroke="currentColor" stroke-width="2.4" ' +
+    'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+    '<path d="M3 22 V10 a4 4 0 0 1 4-4 h27 a6 6 0 0 1 5.8 4.5 l2.4 7.5 a3 3 0 0 1-2.9 4 h-1.3"/>' +
+    '<path d="M3 22 h5.5 M16 22 h15"/>' +
+    '<circle cx="12" cy="23" r="3.2"/><circle cx="35" cy="23" r="3.2"/>' +
+    '<path d="M9 12 h5 M19 12 h5 M29 12 h5"/>' +
+    '</svg>';
+
+  /** Static night ridge for the scene banner. */
+  const OVL_MOUNTAINS =
+    '<svg class="mtn" viewBox="0 0 600 120" preserveAspectRatio="none" aria-hidden="true">' +
+    '<path d="M0 120 L90 44 L180 120 Z" fill="rgba(255,255,255,.05)"/>' +
+    '<path d="M120 120 L260 16 L400 120 Z" fill="rgba(255,255,255,.09)"/>' +
+    '<path d="M350 120 L462 40 L574 120 Z" fill="rgba(255,255,255,.05)"/>' +
+    '<path d="M470 120 L556 60 L642 120 Z" fill="rgba(255,255,255,.08)"/>' +
+    '</svg>';
+
+  /** Only same-site URLs (any abhibus.com subdomain) are ever rendered. */
+  function isAbhibusUrl(url) {
+    return typeof url === 'string' && /^https:\/\/([a-z0-9-]+\.)*abhibus\.com\//i.test(url);
+  }
 
   const SUGGESTIONS = [
     "What's my AbhiCash balance?",
@@ -1289,6 +1623,176 @@ button:focus-visible, textarea:focus-visible, a:focus-visible {
       inputEl.focus();
     }
 
+    /* ---- AI search overlay (cinematic bottom sheet; page-only flow) --- */
+    /** @type {{el:HTMLElement, sheet:HTMLElement,
+     *          stopEls:HTMLElement[], fillEl:HTMLElement, stageEl:HTMLElement,
+     *          steps:string[], watchdog:number}|null} */
+    let ovl = null;
+
+    function destroyOverlay() {
+      if (!ovl) return;
+      clearTimeout(ovl.watchdog);
+      ovl.el.remove();
+      ovl = null;
+    }
+
+    /** Swap the stage line with a re-triggered entrance animation. */
+    function setOverlayStage(text, { live = true, done = false } = {}) {
+      if (!ovl) return;
+      const next = document.createElement('div');
+      next.className = `ovl-stage${done ? ' done' : ''}`;
+      next.dataset.live = String(live && !done);
+      next.textContent = text;
+      ovl.stageEl.replaceWith(next);
+      ovl.stageEl = next;
+    }
+
+    /**
+     * @param {object} opts
+     * @param {string} [opts.route]  "Pune → Goa"
+     * @param {string} [opts.date]   "2026-08-13"
+     * @param {string[]} opts.steps  ordered step labels
+     * @param {number} [opts.doneThrough] steps 0..N already done; N+1 active
+     * @param {boolean} [opts.resume] true when the loader was already on
+     *   screen before a page navigation — skips the logo entrance entirely
+     *   so the journey reads as ONE continuous loader, not two.
+     */
+    function showSearchOverlay({ route = '', date = '', steps = [], doneThrough = -1, resume = false } = {}) {
+      destroyOverlay();
+
+      const el = document.createElement('div');
+      el.className = resume ? 'ovl resume' : 'ovl';
+      el.setAttribute('role', 'status');
+      el.setAttribute('aria-live', 'polite');
+
+      // The round bus logo the card is born from (and returns into).
+      const logo = document.createElement('div');
+      logo.className = 'ovl-logo';
+      logo.innerHTML = ICON_BUS;
+
+      const sheet = document.createElement('div');
+      sheet.className = 'ovl-sheet';
+
+      /* ---- content ---------------------------------------------------- */
+      const panel = document.createElement('div');
+      panel.className = 'ovl-body';
+
+      /* the scene: night ridge, gold sun, brand pill, three-lane convoy */
+      const scene = document.createElement('div');
+      scene.className = 'ovl-scene';
+      scene.innerHTML =
+        OVL_MOUNTAINS +
+        '<div class="sun"></div>' +
+        '<div class="horizon"></div>' +
+        `<div class="ovl-lane b1">${OVL_BUS_LINE}</div>` +
+        `<div class="ovl-lane b2">${OVL_BUS_LINE}</div>` +
+        `<div class="ovl-lane b3">${OVL_BUS_LINE}</div>` +
+        '<div class="mark">AbhiBus</div>';
+
+      const routeRow = document.createElement('div');
+      routeRow.className = 'ovl-route-row';
+      const [from, to] = String(route).split(/\s*→\s*/);
+      const fromEl = document.createElement('span');
+      fromEl.className = 'ovl-city';
+      fromEl.textContent = from || 'Your buses';
+      routeRow.appendChild(fromEl);
+      if (to) {
+        const dash = document.createElement('span');
+        dash.className = 'ovl-route-dash';
+        dash.innerHTML = `<span class="bus">${ICON_BUS}</span>`;
+        const toEl = document.createElement('span');
+        toEl.className = 'ovl-city';
+        toEl.textContent = to;
+        routeRow.append(dash, toEl);
+      }
+      if (date) {
+        const dateEl = document.createElement('span');
+        dateEl.className = 'ovl-date';
+        dateEl.textContent = date;
+        routeRow.appendChild(dateEl);
+      }
+
+      /* progress as a route of stops */
+      const stops = document.createElement('div');
+      stops.className = 'ovl-stops';
+      const track = document.createElement('div');
+      track.className = 'track';
+      const fill = document.createElement('div');
+      fill.className = 'fill';
+      stops.append(track, fill);
+      const lastIndex = Math.max(steps.length - 1, 1);
+      const stopEls = steps.map((_, i) => {
+        const stop = document.createElement('div');
+        stop.className = 'ovl-stop';
+        stop.style.left = `${(i / lastIndex) * 100}%`;
+        stop.dataset.state = i <= doneThrough ? 'done' : i === doneThrough + 1 ? 'active' : 'pending';
+        stops.appendChild(stop);
+        return stop;
+      });
+
+      const stage = document.createElement('div');
+      stage.className = 'ovl-stage';
+      stage.dataset.live = 'true';
+      stage.textContent = steps[doneThrough + 1] || steps[steps.length - 1] || '';
+
+      const brand = document.createElement('div');
+      brand.className = 'ovl-brand';
+      brand.textContent = 'Powered by AbhiBus AI';
+
+      const info = document.createElement('div');
+      info.className = 'ovl-info';
+      info.append(routeRow, stops, stage, brand);
+      panel.append(scene, info);
+      sheet.appendChild(panel);
+      el.append(sheet, logo);
+      root.appendChild(el);
+
+      // Never trap the user under a stuck overlay: it self-destructs.
+      ovl = {
+        el,
+        sheet,
+        stopEls,
+        fillEl: fill,
+        stageEl: stage,
+        steps,
+        watchdog: setTimeout(destroyOverlay, 30000),
+      };
+      // Kick the fill after layout so the first advance animates too.
+      requestAnimationFrame(() => {
+        if (ovl) ovl.fillEl.style.width = `${(Math.max(doneThrough + 1, 0) / lastIndex) * 100}%`;
+      });
+    }
+
+    /** Mark stops 0..index done, index+1 active (with optional live label). */
+    function advanceSearchOverlay(index, labelOverride) {
+      if (!ovl) return;
+      const lastIndex = Math.max(ovl.steps.length - 1, 1);
+      ovl.stopEls.forEach((stop, i) => {
+        if (i <= index) stop.dataset.state = 'done';
+        else if (i === index + 1) stop.dataset.state = 'active';
+      });
+      ovl.fillEl.style.width = `${(Math.min(index + 1, lastIndex) / lastIndex) * 100}%`;
+      const nextLabel = labelOverride || ovl.steps[index + 1];
+      if (nextLabel) setOverlayStage(nextLabel);
+    }
+
+    /** Journey complete: settle everything, sign off in teal, drift away. */
+    function finishSearchOverlay(message) {
+      if (!ovl) return;
+      ovl.stopEls.forEach((stop) => { stop.dataset.state = 'done'; });
+      ovl.fillEl.style.width = '100%';
+      ovl.sheet.classList.add('arrived');
+      setOverlayStage(`✓  ${message || 'All set — happy journey!'}`, { done: true });
+
+      const el = ovl.el;
+      clearTimeout(ovl.watchdog);
+      ovl = null;
+      setTimeout(() => {
+        el.classList.add('ovl-out');
+        setTimeout(() => el.remove(), 1600);
+      }, 1600);
+    }
+
     /* ---- open / close ------------------------------------------------ */
     function open() {
       isOpen = true;
@@ -1634,39 +2138,42 @@ button:focus-visible, textarea:focus-visible, a:focus-visible {
             tags.appendChild(tag);
           }
 
-          // Per-bus seat selection: opens the site's seat page in a NEW TAB.
+          // Per-bus seat selection: loads the site's seat page in THIS tab —
+          // the chat is snapshotted on pagehide and restored on the other
+          // side, so the assistant stays with the user through booking.
           // The page's serviceKey query param takes the buslist *serviceId*
           // (verified live — the buslist serviceKey value is rejected).
           const seatServiceId = svc.serviceId ?? null;
           const seatUrl = (() => {
             const q = (v) => encodeURIComponent(String(v));
             if (seatServiceId && svc.operatorId && data.sourceId && data.destinationId && data.date) {
+              // Same-subdomain (www/web/m): the chat snapshot is per-origin.
+              const origin = /(^|\.)abhibus\.com$/i.test(window.location.hostname)
+                ? window.location.origin
+                : 'https://www.abhibus.com';
               return (
-                'https://www.abhibus.com/seat-layout-web/' +
+                `${origin}/seat-layout-web/` +
                 `?sourceid=${q(data.sourceId)}&destinationid=${q(data.destinationId)}` +
                 `&jdate=${q(data.date)}&serviceKey=${q(seatServiceId)}` +
                 `&operatorId=${q(svc.operatorId)}&isReturnJourney=0`
               );
             }
-            return typeof data.searchUrl === 'string' &&
-              data.searchUrl.startsWith('https://www.abhibus.com/')
-              ? data.searchUrl
-              : null;
+            return isAbhibusUrl(data.searchUrl) ? data.searchUrl : null;
           })();
 
           if (seatUrl) {
             const seatsBtn = document.createElement('button');
             seatsBtn.type = 'button';
             seatsBtn.className = 'seats-btn';
-            seatsBtn.textContent = 'Select seats ↗';
+            seatsBtn.textContent = 'Select seats →';
             seatsBtn.dataset.url = seatUrl;
             seatsBtn.setAttribute(
               'aria-label',
-              `Select seats on ${svc.operator ?? 'this bus'} (opens abhibus.com)`,
+              `Select seats on ${svc.operator ?? 'this bus'} (opens on this page)`,
             );
             seatsBtn.addEventListener('click', (e) => {
               e.stopPropagation();
-              window.open(seatUrl, '_blank', 'noopener');
+              window.location.assign(seatUrl);
             });
             tags.appendChild(seatsBtn);
           }
@@ -1702,20 +2209,17 @@ button:focus-visible, textarea:focus-visible, a:focus-visible {
           card.appendChild(foot);
         }
 
-        /* open the real results page in a new tab. The URL is built by the
-           registry from the exact search arguments — only same-site URLs
-           are ever rendered. */
-        if (
-          typeof data.searchUrl === 'string' &&
-          data.searchUrl.startsWith('https://www.abhibus.com/')
-        ) {
+        /* open the real results page in THIS tab — the chat persists across
+           the navigation. The URL is built by the registry from the exact
+           search arguments — only same-site URLs are ever rendered. */
+        if (isAbhibusUrl(data.searchUrl)) {
           const open = document.createElement('button');
           open.type = 'button';
           open.className = 'buses-open';
-          open.textContent = 'Open these results on AbhiBus ↗';
-          open.setAttribute('aria-label', 'Open these bus results on abhibus.com in a new tab');
+          open.textContent = 'Open these results on AbhiBus →';
+          open.setAttribute('aria-label', 'Open these bus results on this page');
           open.addEventListener('click', () => {
-            window.open(data.searchUrl, '_blank', 'noopener');
+            window.location.assign(data.searchUrl);
           });
           card.appendChild(open);
         }
@@ -1795,15 +2299,12 @@ button:focus-visible, textarea:focus-visible, a:focus-visible {
           card.appendChild(legend);
         }
 
-        if (
-          typeof data.searchUrl === 'string' &&
-          data.searchUrl.startsWith('https://www.abhibus.com/')
-        ) {
+        if (isAbhibusUrl(data.searchUrl)) {
           const open = document.createElement('button');
           open.type = 'button';
           open.className = 'buses-open';
-          open.textContent = 'Book these seats on AbhiBus ↗';
-          open.addEventListener('click', () => window.open(data.searchUrl, '_blank', 'noopener'));
+          open.textContent = 'Book these seats on AbhiBus →';
+          open.addEventListener('click', () => window.location.assign(data.searchUrl));
           card.appendChild(open);
         }
 
@@ -1929,6 +2430,12 @@ button:focus-visible, textarea:focus-visible, a:focus-visible {
       flagAttention() {
         if (!isOpen) launcher.dataset.attention = 'true';
       },
+
+      /* ---- AI search overlay (page-only results flow) --------------- */
+      showSearchOverlay,
+      advanceSearchOverlay,
+      finishSearchOverlay,
+      hideSearchOverlay: destroyOverlay,
 
       clear() {
         logEl.textContent = '';
