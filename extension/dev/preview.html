@@ -49,6 +49,8 @@
         <button data-demo="auth">Show the logged-out state</button>
         <button data-demo="error">Show an error</button>
         <button data-demo="overlay">AI search overlay</button>
+        <button data-demo="minimal">Toggle minimal voice UI</button>
+        <button data-demo="rowflow">Toggle row flow</button>
         <button data-demo="clear">Clear</button>
       </div>
     </div>
@@ -114,6 +116,42 @@
         error: () => {
           ui.open();
           ui.showError('Cannot reach the assistant backend at http://localhost:8787.', { retry: true });
+        },
+        minimal: () => {
+          window.__minimal = !window.__minimal;
+          ui.setMinimal(window.__minimal);
+          ui.open();
+          if (window.__minimal) {
+            ui.addUserMessage('Cheapest AC bus from Pune to Goa tomorrow');
+            const b = ui.startAssistantMessage();
+            b.set('The cheapest AC bus is **PSR Travels** at **₹999**, departing 08:00. Your results are on the page behind me.');
+            b.finish();
+            ui.setStatus('Listening');
+            setTimeout(() => ui.setStatus(''), 1500);
+          }
+        },
+        rowflow: () => {
+          window.__row = !window.__row;
+          ui.setChatFlow(window.__row ? 'row' : 'column');
+          ui.setMinimal(true);
+          ui.open();
+          if (!document.querySelector('#seeded')) {
+            window.__minimal = true;
+            const seed = [
+              ['u', 'Cheapest AC bus from Pune to Goa tomorrow'],
+              ['b', 'The cheapest AC bus is **PSR Travels** at **₹999**, departing 08:00.'],
+              ['u', 'And the highest rated one?'],
+              ['b', '**VRL Travels** has the best rating (★ 4.5) at ₹1,000, departing 23:55.'],
+              ['u', 'Book a window seat on that'],
+              ['b', 'Opening the seat map for VRL Travels — pick your window seat on the page.'],
+            ];
+            for (const [who, text] of seed) {
+              if (who === 'u') ui.addUserMessage(text);
+              else { const bb = ui.startAssistantMessage(); bb.set(text); bb.finish(); }
+            }
+            const marker = document.createElement('div'); marker.id = 'seeded'; marker.hidden = true;
+            document.body.appendChild(marker);
+          }
         },
         overlay: () => {
           // The full page-only-flow journey, compressed: search starts,

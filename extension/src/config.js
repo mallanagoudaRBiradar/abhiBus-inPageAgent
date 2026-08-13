@@ -42,6 +42,20 @@
      * hides itself, keeping the full history for when it is reopened.
      */
     showBusListUi: true,
+
+    /**
+     * Voice-first minimal chat: no window, no chrome — messages float as
+     * red bubbles over the page, a red orb listens, a small chip summons
+     * the keyboard. Set false for the classic full panel.
+     */
+    minimalChatUi: true,
+
+    /**
+     * Mirrors CHAT_FLOW in backend/.env: 'column' stacks a small history
+     * above the mic orb; 'row' flows messages horizontally to the right
+     * along the bottom of the screen.
+     */
+    chatFlow: 'column',
   };
 
   /**
@@ -95,6 +109,9 @@
       const data = await res.json();
       if (typeof data?.showBusListUi === 'boolean') {
         NS.CONFIG.showBusListUi = data.showBusListUi;
+      }
+      if (data?.chatFlow === 'row' || data?.chatFlow === 'column') {
+        NS.CONFIG.chatFlow = data.chatFlow;
       }
     } catch {
       /* gateway down or slow — keep the value we already have */

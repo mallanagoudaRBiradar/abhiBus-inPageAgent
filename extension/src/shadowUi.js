@@ -1163,6 +1163,240 @@ button:focus-visible, textarea:focus-visible, a:focus-visible {
   color: rgba(107, 116, 132, .65);
 }
 
+/* =============================================== minimal (voice-first)
+   The anti-chat: no window, no header, no chrome. Messages float straight
+   over the page as red bubbles; one red orb listens; a small chip summons
+   a keyboard for the rare typed message. Everything else is the page. */
+
+.panel[data-minimal="true"] {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  height: auto;
+  max-height: calc(100vh - 40px);
+  overflow: visible;
+  bottom: 12px;   /* hug the bottom edge — the page is the star */
+  right: 12px;
+}
+.panel[data-minimal="true"] .msg {
+  font-size: 13px;
+  padding: 8px 12px;
+  line-height: 1.5;
+}
+.panel[data-minimal="true"] .head,
+.panel[data-minimal="true"] .route,
+.panel[data-minimal="true"] .suggestions,
+.panel[data-minimal="true"] .welcome,
+.panel[data-minimal="true"] .footnote { display: none; }
+
+/* history stays SMALL: a short scrollable stack, never a wall */
+.panel[data-minimal="true"] .log {
+  background: transparent;
+  padding: 6px 2px;
+  flex: none;
+  max-height: min(24vh, 240px);
+  overflow-y: auto;
+}
+.panel[data-minimal="true"] .jump { display: none; }
+
+/* row flow: the conversation runs along the bottom, newest to the RIGHT */
+.panel[data-minimal="true"][data-flow="row"] {
+  width: min(1100px, calc(100vw - 40px));
+  max-width: none;
+}
+.panel[data-minimal="true"][data-flow="row"] .log {
+  flex-direction: row;
+  align-items: flex-end;
+  gap: 8px;
+  max-height: 140px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 6px 2px 8px;
+}
+.panel[data-minimal="true"][data-flow="row"] .log > * { flex: none; }
+.panel[data-minimal="true"][data-flow="row"] .msg {
+  max-width: 290px;
+  align-self: flex-end;
+}
+.panel[data-minimal="true"][data-flow="row"] .buses,
+.panel[data-minimal="true"][data-flow="row"] .card {
+  align-self: flex-end;
+  width: 360px;
+  max-width: 70vw;
+}
+.panel[data-minimal="true"][data-flow="row"] .buses .buses-list { max-height: 120px; }
+.panel[data-minimal="true"][data-flow="row"] .status,
+.panel[data-minimal="true"][data-flow="row"] .chip { align-self: flex-end; }
+
+/* scroll chips: back/forward through the history, both flows */
+.log-nav { display: none; }
+.panel[data-minimal="true"] .log-nav {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  padding: 6px 2px 0;
+  flex: none;
+}
+.log-nav .mini-btn { width: 30px; height: 30px; }
+.log-nav svg { transition: transform .2s ease; }
+/* column: back = up, forward = down; row: back = left, forward = right */
+.panel[data-minimal="true"] [data-scroll-back] svg { transform: rotate(90deg); }
+.panel[data-minimal="true"] [data-scroll-fwd] svg { transform: rotate(-90deg); }
+.panel[data-minimal="true"][data-flow="row"] [data-scroll-back] svg { transform: none; }
+.panel[data-minimal="true"][data-flow="row"] [data-scroll-fwd] svg { transform: rotate(180deg); }
+
+/* every word wears red — nothing else exists */
+.panel[data-minimal="true"] .msg.user {
+  background: var(--red);
+  box-shadow: 0 6px 18px rgba(229, 50, 45, .35);
+}
+.panel[data-minimal="true"] .msg.bot {
+  background: var(--red-dark);
+  border: none;
+  color: #fff;
+  box-shadow: 0 6px 18px rgba(194, 35, 31, .3);
+}
+.panel[data-minimal="true"] .msg.bot h3 {
+  background: rgba(255, 255, 255, .14);
+  color: #fff;
+  border-left-color: #fff;
+}
+.panel[data-minimal="true"] .msg.bot code { background: rgba(255, 255, 255, .2); color: #fff; }
+.panel[data-minimal="true"] .msg.bot .data { color: #fff; }
+/* who said it: a tiny name-tag inside every bubble (minimal mode only,
+   where colour and alignment alone cannot carry the distinction) */
+.msg .who { display: none; }
+.panel[data-minimal="true"] .msg .who {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 4px;
+  font-family: var(--mono);
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, .8);
+}
+.panel[data-minimal="true"] .msg .who svg {
+  width: 12px;
+  height: 12px;
+  fill: rgba(255, 255, 255, .95);
+}
+
+/* while the answer loads: a little white bus drives inside the bubble */
+.busload { display: none; }
+.panel[data-minimal="true"] .msg.pending::after { display: none; }
+.panel[data-minimal="true"] .msg.pending .busload {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 1px 4px;
+}
+.panel[data-minimal="true"] .busload svg {
+  width: 22px;
+  height: 22px;
+  fill: #fff;
+  animation: busload-drive .9s ease-in-out infinite alternate;
+}
+.panel[data-minimal="true"] .busload i {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .9);
+  animation: busload-dot 1.2s ease-in-out infinite;
+}
+.panel[data-minimal="true"] .busload i:nth-of-type(1) { animation-delay: 0s; }
+.panel[data-minimal="true"] .busload i:nth-of-type(2) { animation-delay: .18s; }
+.panel[data-minimal="true"] .busload i:nth-of-type(3) { animation-delay: .36s; }
+@keyframes busload-drive {
+  from { transform: translateX(-5px); }
+  to   { transform: translateX(5px); }
+}
+@keyframes busload-dot {
+  0%, 100% { opacity: .25; }
+  50%      { opacity: 1; }
+}
+
+/* working state: a small red pill, only when there is something to say */
+.panel[data-minimal="true"] .status {
+  margin: 0 2px 6px auto;
+  padding: 4px 13px;
+  width: fit-content;
+  min-height: 0;
+  background: rgba(229, 50, 45, .92);
+  color: #fff;
+  border-radius: 99px;
+}
+.panel[data-minimal="true"] .status:empty { display: none; }
+.panel[data-minimal="true"] .chip {
+  background: rgba(229, 50, 45, .92);
+  color: #fff;
+  border-color: transparent;
+  align-self: flex-end;
+}
+.panel[data-minimal="true"] .chip .dot { background: #fff; }
+
+/* the orb row: [close] [keyboard] ......... [cancel] [MIC] */
+.panel[data-minimal="true"] .compose {
+  border-top: none;
+  background: transparent;
+  padding: 6px 0 0;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.panel[data-minimal="true"] .compose textarea,
+.panel[data-minimal="true"] .send { display: none; }
+.panel[data-minimal="true"][data-textmode="true"] .compose textarea {
+  display: block;
+  flex: none;
+  width: min(320px, 60vw);   /* a pill, not a full-width bar */
+  background: rgba(255, 255, 255, .92);
+  border: 1px solid rgba(229, 50, 45, .35);
+  border-radius: 21px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.panel[data-minimal="true"][data-textmode="true"] .send {
+  display: grid;
+  border-radius: 50%;
+}
+
+.panel[data-minimal="true"] .mic {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: none;
+  background: var(--red);
+  color: #fff;
+  box-shadow: 0 10px 28px rgba(229, 50, 45, .45);
+}
+.panel[data-minimal="true"] .mic:hover { background: var(--red-dark); color: #fff; }
+.panel[data-minimal="true"] .mic svg { width: 24px; height: 24px; }
+.panel[data-minimal="true"] .mic[data-recording="true"] { background: var(--red-dark); }
+.panel[data-minimal="true"] [data-voice-cancel] { width: 40px; height: 40px; }
+
+/* the two quiet glass chips (close, keyboard) — minimal mode only */
+.mini-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .82);
+  border: 1px solid rgba(229, 50, 45, .3);
+  color: var(--red);
+  display: grid;
+  place-items: center;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  transition: background .15s ease;
+  flex: none;
+}
+.mini-btn:hover { background: #fff; }
+.mini-btn svg { width: 15px; height: 15px; }
+.panel:not([data-minimal="true"]) .mini-btn { display: none; }
+.panel[data-minimal="true"][data-textmode="true"] [data-kb] { background: var(--red); color: #fff; }
+
 /* ------------------------------------------------------- responsive */
 
 @media (max-width: 480px) {
@@ -1416,10 +1650,40 @@ button:focus-visible, textarea:focus-visible, a:focus-visible {
       <button class="jump" type="button" data-jump hidden
               aria-label="Scroll to the latest message">&darr; Latest</button>
 
+      <div class="log-nav" aria-hidden="false">
+        <button class="mini-btn" type="button" data-scroll-back title="Older messages"
+                aria-label="Scroll to older messages">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 6 9 12l5.5 6"
+            stroke="currentColor" stroke-width="2.4" stroke-linecap="round"
+            stroke-linejoin="round" fill="none"/></svg>
+        </button>
+        <button class="mini-btn" type="button" data-scroll-fwd title="Newer messages"
+                aria-label="Scroll to newer messages">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 6 9 12l5.5 6"
+            stroke="currentColor" stroke-width="2.4" stroke-linecap="round"
+            stroke-linejoin="round" fill="none"/></svg>
+        </button>
+      </div>
+
       <div class="suggestions" data-suggestions></div>
       <div class="status" data-status aria-live="polite"></div>
 
       <div class="compose">
+        <button class="mini-btn" type="button" data-close-min title="Close"
+                aria-label="Close the assistant">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"
+            stroke="currentColor" stroke-width="2.4" stroke-linecap="round" fill="none"/></svg>
+        </button>
+        <button class="mini-btn" type="button" data-clear-min title="Clear the conversation"
+                aria-label="Clear the conversation history">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor"
+            d="M9 3h6l1 2h4v2H4V5h4l1-2Zm-3 6h12l-.9 11.1a2 2 0 0 1-2 1.9H8.9a2 2 0 0 1-2-1.9L6 9Zm4 2.5v7h1.8v-7H10Zm3.2 0v7H15v-7h-1.8Z"/></svg>
+        </button>
+        <button class="mini-btn" type="button" data-kb title="Type instead"
+                aria-label="Toggle the keyboard">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor"
+            d="M4 6h16a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2Zm1 3v2h2V9H5Zm4 0v2h2V9H9Zm4 0v2h2V9h-2Zm4 0v2h2V9h-2ZM7 13v2h10v-2H7Z"/></svg>
+        </button>
         <textarea data-input rows="1" placeholder="Ask about buses, bookings or AbhiCash"
                   aria-label="Message the AbhiBus assistant"></textarea>
         <button class="mic" type="button" data-voice-cancel hidden title="Discard voice input"
@@ -1445,20 +1709,35 @@ button:focus-visible, textarea:focus-visible, a:focus-visible {
     let isBusy = false;
     let welcomeEl = null;
 
-    /* ---- scrolling -------------------------------------------------- */
+    /* ---- scrolling (flow-aware: column scrolls down, row scrolls right) */
     let pinnedToBottom = true;
+    const isRowFlow = () => panel.dataset.flow === 'row';
     logEl.addEventListener('scroll', () => {
-      const distance = logEl.scrollHeight - logEl.scrollTop - logEl.clientHeight;
+      const distance = isRowFlow()
+        ? logEl.scrollWidth - logEl.scrollLeft - logEl.clientWidth
+        : logEl.scrollHeight - logEl.scrollTop - logEl.clientHeight;
       pinnedToBottom = distance < 48;
       jumpEl.hidden = pinnedToBottom;
     });
     function scrollToEnd(force = false) {
       if (force || pinnedToBottom) {
-        logEl.scrollTop = logEl.scrollHeight;
+        if (isRowFlow()) logEl.scrollLeft = logEl.scrollWidth;
+        else logEl.scrollTop = logEl.scrollHeight;
         jumpEl.hidden = true;
       }
     }
     jumpEl.addEventListener('click', () => scrollToEnd(true));
+
+    /* the minimal-mode scroll chips: page back/forward through history */
+    function scrollByChunk(direction) {
+      if (isRowFlow()) {
+        logEl.scrollBy({ left: direction * logEl.clientWidth * 0.7, behavior: 'smooth' });
+      } else {
+        logEl.scrollBy({ top: direction * logEl.clientHeight * 0.7, behavior: 'smooth' });
+      }
+    }
+    $('[data-scroll-back]').addEventListener('click', () => scrollByChunk(-1));
+    $('[data-scroll-fwd]').addEventListener('click', () => scrollByChunk(1));
 
     /* ---- wide mode --------------------------------------------------- */
     expandEl.addEventListener('click', () => {
@@ -1507,7 +1786,7 @@ button:focus-visible, textarea:focus-visible, a:focus-visible {
     /* ---- voice input (Web Speech API — free, built into Chrome) ------ */
     const micEl = $('[data-mic]');
     const voiceCancelEl = $('[data-voice-cancel]');
-    const idlePlaceholder = inputEl.placeholder;
+    let idlePlaceholder = inputEl.placeholder;
     const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
 
     let recognition = null;
@@ -1609,9 +1888,14 @@ button:focus-visible, textarea:focus-visible, a:focus-visible {
       api.setStatus('');
     }
 
-    /** The ✓: keep the transcript in the input, ready to edit or send. */
+    /** The ✓. Voice-first minimal mode sends the words straight away;
+     *  the classic panel keeps them in the input, ready to edit. */
     function acceptVoice() {
       stopVoice();
+      if (panel.dataset.minimal === 'true' && inputEl.value.trim() && !isBusy) {
+        submit();
+        return;
+      }
       inputEl.focus();
     }
 
@@ -1793,13 +2077,27 @@ button:focus-visible, textarea:focus-visible, a:focus-visible {
       }, 1600);
     }
 
+    /* ---- minimal mode: keyboard summon + close chips ----------------- */
+    $('[data-kb]').addEventListener('click', () => {
+      const textmode = panel.dataset.textmode === 'true';
+      panel.dataset.textmode = String(!textmode);
+      if (!textmode) setTimeout(() => inputEl.focus(), 20);
+    });
+    $('[data-close-min]').addEventListener('click', () => close());
+    $('[data-clear-min]').addEventListener('click', () => {
+      logEl.textContent = '';
+      api.setStatus('');
+      handlers.onReset();
+    });
+
     /* ---- open / close ------------------------------------------------ */
     function open() {
       isOpen = true;
       panel.hidden = false;
       launcher.hidden = true;
       launcher.dataset.attention = 'false';
-      setTimeout(() => inputEl.focus(), 30);
+      // Voice-first minimal mode has no visible input to focus.
+      if (panel.dataset.minimal !== 'true') setTimeout(() => inputEl.focus(), 30);
       scrollToEnd(true);
     }
     function close() {
@@ -1899,7 +2197,12 @@ button:focus-visible, textarea:focus-visible, a:focus-visible {
         if (welcomeEl?.isConnected) welcomeEl.remove();
         const el = document.createElement('div');
         el.className = 'msg user';
-        renderRichText(el, text);
+        const who = document.createElement('div');
+        who.className = 'who';
+        who.textContent = 'You';
+        const body = document.createElement('div');
+        renderRichText(body, text);
+        el.append(who, body);
         logEl.appendChild(el);
         scrollToEnd(true);
         return el;
@@ -1913,6 +2216,14 @@ button:focus-visible, textarea:focus-visible, a:focus-visible {
       startAssistantMessage() {
         const el = document.createElement('div');
         el.className = 'msg bot pending';
+        const who = document.createElement('div');
+        who.className = 'who';
+        who.innerHTML = `${ICON_BUS}<span>AbhiBus AI</span>`;
+        const body = document.createElement('div');
+        // Minimal mode's loading state: a bus driving with road dots.
+        // The first streamed token replaces it (renderRichText clears).
+        body.innerHTML = `<span class="busload" aria-hidden="true">${ICON_BUS}<i></i><i></i><i></i></span>`;
+        el.append(who, body);
         logEl.appendChild(el);
         scrollToEnd(true);
 
@@ -1930,14 +2241,14 @@ button:focus-visible, textarea:focus-visible, a:focus-visible {
             buffer += chunk;
             el.classList.remove('pending');
             ensureLast();
-            renderRichText(el, buffer);
+            renderRichText(body, buffer);
             scrollToEnd();
           },
           set(text) {
             buffer = text;
             el.classList.remove('pending');
             ensureLast();
-            renderRichText(el, buffer);
+            renderRichText(body, buffer);
             scrollToEnd();
           },
           finish() {
@@ -2429,6 +2740,25 @@ button:focus-visible, textarea:focus-visible, a:focus-visible {
       /** Amber pip on the launcher when a reply lands while collapsed. */
       flagAttention() {
         if (!isOpen) launcher.dataset.attention = 'true';
+      },
+
+      /**
+       * Voice-first minimal mode: the chat window disappears — messages
+       * float as red bubbles over the page, one red orb listens, a small
+       * chip summons the keyboard when typing is really needed.
+       */
+      setMinimal(on) {
+        panel.dataset.minimal = String(Boolean(on));
+        if (!on) panel.dataset.textmode = 'false';
+        // The slim pill input fits a short prompt, the full panel a long one.
+        idlePlaceholder = on ? 'Type here…' : 'Ask about buses, bookings or AbhiCash';
+        if (!isRecording) inputEl.placeholder = idlePlaceholder;
+      },
+
+      /** 'column' (small stack) or 'row' (messages flow to the right). */
+      setChatFlow(flow) {
+        panel.dataset.flow = flow === 'row' ? 'row' : 'column';
+        scrollToEnd(true);
       },
 
       /* ---- AI search overlay (page-only results flow) --------------- */

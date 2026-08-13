@@ -139,6 +139,7 @@
   }).mount();
 
   refreshSubtitle();
+  if (NS.CONFIG.minimalChatUi) ui.setMinimal(true);
 
   /** Ordered stages of the AI search overlay (page-only results flow). */
   const SEARCH_STEPS = [
@@ -156,6 +157,7 @@
     NS.CONFIG.showBusListUi = restoredChat.showBusListUi;
   }
   await NS.loadUiConfig();
+  ui.setChatFlow(NS.CONFIG.chatFlow);
 
   // Restore a conversation interrupted by the extension's own in-tab
   // navigation to a results page, then run any queued page action
@@ -352,9 +354,10 @@
     if (!text) return;
 
     // Re-check the gateway's UI flags on EVERY turn, not just at page boot:
-    // a SHOW_BUS_LIST_UI flip (or a boot-time fetch that failed) must take
-    // effect on the next message, never linger stale for the tab's lifetime.
+    // a SHOW_BUS_LIST_UI or CHAT_FLOW flip (or a boot-time fetch that
+    // failed) must take effect on the next message, never linger stale.
     await NS.loadUiConfig();
+    ui.setChatFlow(NS.CONFIG.chatFlow);
 
     state.lastPrompt = text;
     if (!replay) {
